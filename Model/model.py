@@ -175,7 +175,7 @@ nodes_df.columns = ['lat', 'lon', 'lat_arrive', 'lon_arrive']
 nodes_df = pd.concat([nodes_df[['lat', 'lon']], nodes_df[['lat_arrive', 'lon_arrive']].rename(columns={'lat_arrive': 'lat', 'lon_arrive': 'lon'})])
 nodes_df = nodes_df.drop_duplicates()
 nodes_gdf = gpd.GeoDataFrame(nodes_df, geometry=gpd.points_from_xy(nodes_df['lon'], nodes_df['lat']))
-nodes_gdf.to_file("strada_nodes.shp")
+# nodes_gdf.to_file("strada_nodes.shp")
 
 nodes_array = np.array([(x, y) for x, y in zip(nodes_gdf['lat'], nodes_gdf['lon'])])
 
@@ -214,21 +214,22 @@ geo_df_geo_sources_buffer = geo_df_geo_sources[geo_df_geo_sources.geometry.withi
 
 ################################# geodataframe shp ###########################################
 
+output_path = os.path.abspath("output/pre_opt_maps")
 output_filename = "dmd_in_buffer.shp"
 output_filepath = os.path.join(output_path, output_filename)
 geo_df_dmd_buffer.to_file(output_filepath, encoding= 'utf-8')
 
 ########
-
+output_path = os.path.abspath("output/pre_opt_maps")
 output_filename = "sources_in_buffer.shp"
 output_filepath = os.path.join(output_path, output_filename)
 geo_df_fonti_buffer.to_file(output_filepath, encoding='utf-8')
 
 ########
-
+output_path = os.path.abspath("output/pre_opt_maps")
 output_filename = "geo_sources_in_buffer.shp"
 output_filepath = os.path.join(output_path, output_filename)
-geo_df_geo_sources_buffer.to_file("fonti_geo_buffer.shp", encoding='utf-8')
+geo_df_geo_sources_buffer.to_file(output_filepath, encoding='utf-8')
 
 #######################################################################################
 
@@ -250,8 +251,10 @@ segments_gdf['length_meters'] = segments_gdf['geometry'].length
 
 import oemof.solph as solph
 from oemof.tools import logger
-tec_data = pd.read_excel("data_02.xlsx", sheet_name = 'TEC')
-commodities_data = pd.read_excel("data_02.xlsx", sheet_name = 'COMMODITIES')
+input_filename = "data_02.xlsx"
+input_filepath = os.path.join(input_path, input_filename)
+tec_data = pd.read_excel(input_filepath, sheet_name = 'TEC')
+commodities_data = pd.read_excel(input_filepath, sheet_name = 'COMMODITIES')
 
 id_dmd_set = set(geo_df_dmd_buffer['id_dmd'].tolist())
 id_fonti_set = set(geo_df_fonti_buffer['id_source'])
@@ -463,7 +466,8 @@ satisfied_demands = {k: v for k, v in satisfied_demands.items() if v[0] != None}
 satisfied_demands_dataframe = pd.DataFrame(satisfied_demands)
 satisfied_demands_dataframe = satisfied_demands_dataframe.transpose()
 
-output_filename = "raw_results"
+output_path = os.path.abspath("output/excel")
+output_filename = "raw_results.csv"
 output_filepath = os.path.join(output_path, output_filename)
 satisfied_demands_dataframe[1].to_csv(output_filepath) 
 
@@ -490,13 +494,14 @@ if condizione.any():
                                    geometry=geometrie_linee, 
                                    crs='EPSG:4326')  # Assicurati di impostare il sistema di riferimento corretto
         
+        output_path = os.path.abspath("output/district_heating")
         output_filename = "district_heating_path.shp"
         output_filepath = os.path.join(output_path, output_filename)
         tracciato_output_gdf.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no district heating')
+        print('DH is not installed to satisfy the heat demand')
 else:
-    print('no district heating')
+    print('DH is not installed to satisfy the heat demand')
 
 ############################## CHP coordinates  ##########################
 
@@ -515,13 +520,14 @@ if condizione_chp.any():
                                               geometry=geometrie_punti, 
                                               crs='EPSG:4326')
         
+        output_path = os.path.abspath("output/CHP")
         output_filename = "CHP.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_chp.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no chp')
+        print('CHP plants are not installed to satisfy the heat demand')
 else:
-    print('no chp')
+    print('CHP plants are not installed to satisfy the heat demand')
 
 ############################## boiler ##########################
 
@@ -542,13 +548,14 @@ if condizione_boiler.any():
                                                   geometry=geometrie_punti, 
                                                   crs='EPSG:4326')
         
+        output_path = os.path.abspath("output/boiler")
         output_filename = "boiler.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_boiler.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no boiler')
+        print('boilers are not installed to satisfy the heat demand')
 else:
-    print('no boiler')
+    print('boilers are not installed to satisfy the heat demand')
     
 ############################## heat pumps  ##########################
 
@@ -569,13 +576,14 @@ if condizione_pdc_ee.any():
                                                   geometry=geometrie_punti, 
                                                   crs='EPSG:4326')
         
+        output_path = os.path.abspath("output/heat_pumps")
         output_filename = "heat_pumps.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_pdc_ee.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('Il sistema non contiene pdc_ee')
+        print('heat pumps are not installed to satisfy the heat demand')
 else:
-    print('Il sistema non contiene pdc_ee')
+    print('heat pumps are not installed to satisfy the heat demand')
     
     
 ############################## industry waste heat HT ##########################
@@ -596,13 +604,14 @@ if condizione_HT.any():
         gdf_coordinate_HT = gpd.GeoDataFrame(coordinate_HT, 
                                               geometry=geometrie_punti, 
                                               crs='EPSG:4326')
+        output_path = os.path.abspath("output/HT")
         output_filename = "HT.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_HT.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no HT')
+        print('high temperature waste heat is not used to satisfy the heat demand')
 else:
-    print('no HT')
+    print('high temperature waste heat is not used to satisfy the heat demand')
 
 ############################## industry waste heat LT ##########################
 
@@ -623,13 +632,14 @@ if condizione_LT.any():
                                               geometry=geometrie_punti, 
                                               crs='EPSG:4326')
         
+        output_path = os.path.abspath("output/LT")
         output_filename = "LT.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_LT.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no LT')
+        print('low temperature waste heat is not used to satisfy the heat demand')
 else:
-    print('no LT')
+    print('low temperature waste heat is not used to satisfy the heat demand')
 
 ############################## WWTP ##########################
 
@@ -651,13 +661,14 @@ if condizione_WWTP.any():
                                                geometry=geometrie_punti, 
                                                crs='EPSG:4326')
         
+        output_path = os.path.abspath("output/WWTP")
         output_filename = "WWTP.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_WWTP.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no WWTP')
+        print('WWTP waste heat is not used to satisfy the heat demand')
 else:
-    print('no WWTP')
+    print('WWTP waste heat is not used to satisfy the heat demand')
 
 ############################## geo_shallow ##########################
 
@@ -679,13 +690,14 @@ if condizione_geo_shallow.any():
                                                         geometry=geometrie_punti, 
                                                         crs='EPSG:4326')
         
+        output_path = os.path.abspath("output/geo_shallow")
         output_filename = "geo_shallow.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_geo_shallow.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no geo_shallow')
+        print('geo shallow heat source is not used to satisfy the heat demand')
 else:
-    print('no geo_shallow')
+    print('geo shallow heat source is not used to satisfy the heat demand')
     
     
 ##############################  geo_1000_2000 ##########################
@@ -708,26 +720,29 @@ if condizione_geo_1000_2000.any():
                                                          geometry=geometrie_punti, 
                                                          crs='EPSG:4326')
         
+        output_path = os.path.abspath("output/geo_deep")
         output_filename = "geo_1000_2000.shp"
         output_filepath = os.path.join(output_path, output_filename)
         gdf_coordinate_geo_1000_2000.to_file(output_filepath, driver='ESRI Shapefile')
     else:
-        print('no geo_1000_2000')
+        print('geo deep heat source is not used to satisfy the heat demand')
 else:
-    print('no  geo_1000_2000')
+    print('geo deep heat source is not used to satisfy the heat demand')
 
 ##################################################### INTERACTIVE MAP ######################################################
-
-tracciato_gdf = gpd.read_file('tracciato_output.shp')
+input_filename = "district_heating_path.shp"
+input_path = os.path.abspath("output/district_heating")
+input_filepath = os.path.join(input_path, input_filename)
+tracciato_gdf = gpd.read_file(input_filepath)
 coordinate_gdf_list = [
-    ('coordinate_chp.shp', 'CHP', 'blue', 'bolt'),
-    ('coordinate_boiler.shp', 'Boiler', 'red', 'fire'),
-    ('coordinate_pdc_ee.shp', 'PDC_EE', 'green', 'leaf'),
-    ('coordinate_HT.shp', 'HT', 'purple', 'cloud'),
-    ('coordinate_LT.shp', 'LT', 'orange', 'tint'),
-    ('coordinate_WWTP.shp', 'WWTP', 'gray', 'tint'),
-    ('coordinate_geo_shallow.shp', 'Geo Shallow', 'yellow', 'tint'),
-    ('coordinate_geo_1000_2000.shp', 'Geo 1000-2000', 'brown', 'tint'),
+    ('output/CHP/CHP.shp', 'CHP', 'blue', 'bolt'),
+    ('output/boiler/boiler.shp', 'Boiler', 'red', 'fire'),
+    ('output/heat_pumps/heat_pumps.shp', 'PDC_EE', 'green', 'leaf'),
+    ('output/HT/HT.shp', 'HT', 'purple', 'cloud'),
+    ('output/LT/LT.shp', 'LT', 'orange', 'tint'),
+    ('output/WWTP/WWTP.shp', 'WWTP', 'gray', 'tint'),
+    ('output/geo_shallow/geo_shallow.shp', 'Geo Shallow', 'yellow', 'tint'),
+    ('output/geo_deep/geo_1000_2000.shp', 'Geo 1000-2000', 'brown', 'tint'),
 ]
 
 
@@ -764,11 +779,12 @@ for coordinate_file, label, color, icon in coordinate_gdf_list:
         folium.Marker(location=[row.geometry.y, row.geometry.x], popup=popup_text,
                       icon=folium.Icon(color=color, icon=icon)).add_to(marker_cluster)
 
+output_path = os.path.abspath("output/interactive_map")
 output_filename = 'interactive_map.html'
 output_filepath = os.path.join(output_path, output_filename)
 mappa.save(output_filepath)
 
-
+output_path = os.path.abspath("output/excel")
 output_filename = 'results_table.xlsx'
 output_filepath = os.path.join(output_path, output_filename)
 
