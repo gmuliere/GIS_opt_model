@@ -10,5 +10,5 @@ The following Python libraries were employed:
 ## Installation
 Download or clone the Model folder from the GitHub link.
 ## Usage
-Compile the "Data_02.xlsx" file with your yearly data.
-Run the model.py file.
+- Compile the "Data_02.xlsx" file with your yearly data.
+- Run the model.py file.
