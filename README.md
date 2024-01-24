@@ -16,4 +16,4 @@ Download or clone the Model folder from the GitHub link.
 - Compile the "Data_02.xlsx" file with your yearly data.
 - Run the model.py file.
 ### note
-A pre-compiled version of the input file, Data_02.xlsx, is provided as an example and for testing the model. The geographical data included referss to the Italian regions of Piemonte and Lombardia.
+A pre-compiled version of the input file, Data_02.xlsx, is provided as an example and for testing the model. The dataset is the result of analyses conducted by Politecnico di Milano.
