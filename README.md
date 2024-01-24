@@ -1,5 +1,5 @@
 # GIS-based Optimization Model for the Assessment of District Heating Potential at the Local Level
-This project consists of a python script to analyze the potential of district heating on a local scale, exploiting renewable heat resources and waste heat.
+This project consists of a python script to analyze the potential of district heating on a local scale, exploiting renewable heat resources and waste heat, in Italy.
 ## Prerequisites
 - Python 3.9 or later
 - Optimization solver such as CBC or GLPK
