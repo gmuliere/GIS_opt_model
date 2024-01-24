@@ -1,22 +1,33 @@
 
+'''
+GIS-based Optimization Model for the Assessment of District Heating Potential at the Local Level
+This project consists of a python script to analyze the potential of district heating on a local scale, exploiting renewable heat resources and waste heat, in Italy.
+
+
+MIT License - Copyright (c) 2024 Gruppo RELAB - Polimi
+
+
+https://github.com/gmuliere/GIS_opt_model/
+
+'''
 
 import geopandas as gpd
 import pandas as pd
 import numpy as np
 import osmnx as ox
 import folium
-import pyproj
 import os
 import logging
 # import oemof.solph as solph
 # import chardet
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+# import pyproj
 
 from shapely.geometry import Point
 from shapely.geometry import LineString
-from scipy.spatial import  Delaunay
+# from scipy.spatial import  Delaunay
 from geopy.distance import geodesic
-from matplotlib.patches import Polygon
+# from matplotlib.patches import Polygon
 from scipy.spatial import cKDTree
 from folium.plugins import MarkerCluster, LocateControl
 # from oemof.tools import logger
@@ -208,7 +219,7 @@ segments_gdf['id_start'] = segments_gdf['lat_start'].astype(str) + '_' + segment
 segments_gdf['id_arrive'] = segments_gdf['lat_arrive'].astype(str) + '_' + segments_gdf['lon_arrive'].astype(str)
 
 # Filter the GeoDataFrame geo_df_dmd to keep only geometries that are entirely within the area of interest
-geo_df_dmd_buffer = geo_df_dmd[geo_df_dmd.geometry.within(area_di_interesse)]
+geo_df_dmd_buffer = geo_df_dmd[geo_df_dmd.geometry.within(area_di_interesse) & (geo_df_dmd['PTE_tot [MWh/anno]'] > 0)]
 geo_df_fonti_buffer = geo_df_fonti[geo_df_fonti.geometry.within(area_di_interesse)]
 geo_df_geo_sources_buffer = geo_df_geo_sources[geo_df_geo_sources.geometry.within(area_di_interesse)]
 
@@ -487,6 +498,7 @@ if condizione.any():
         coordinate_tracciato = risultati_tracciato['node_1'].str.split('__|_', expand=True).combine_first(risultati_tracciato['node_2'].str.split('__|_', expand=True))
         coordinate_tracciato.columns = ['lat_start', 'long_start', 'lat_arrive', 'long_arrive']
         coordinate_tracciato = coordinate_tracciato.drop_duplicates()
+        coordinate_tracciato['flow - MWh'] = risultati_tracciato['flow']
         geometrie_linee = [LineString([(row['long_start'], row['lat_start']), (row['long_arrive'], row['lat_arrive'])]) 
                                for _, row in coordinate_tracciato.iterrows()]
         
@@ -513,7 +525,7 @@ if condizione_chp.any():
     if not risultati_chp.empty:
         coordinate_chp = risultati_chp['node_2'].str.split('_', expand=True)
         coordinate_chp.columns = ['lat_chp', 'long_chp']
-        
+        coordinate_chp['flow - MWh'] = risultati_chp['flow']
         geometrie_punti = [Point(float(row['long_chp']), float(row['lat_chp'])) for _, row in coordinate_chp.iterrows()]
         
         gdf_coordinate_chp = gpd.GeoDataFrame(coordinate_chp, 
@@ -540,7 +552,7 @@ if condizione_boiler.any():
 
         coordinate_boiler = risultati_boiler['node_2'].str.split('_', expand=True)
         coordinate_boiler.columns = ['lat_boiler', 'long_boiler']
-        coordinate_boiler['flow'] = risultati_boiler['flow']
+        coordinate_boiler['flow - MWh'] = risultati_boiler['flow']
         
         geometrie_punti = [Point(float(row['long_boiler']), float(row['lat_boiler'])) for _, row in coordinate_boiler.iterrows()]
         
@@ -568,7 +580,7 @@ if condizione_pdc_ee.any():
 
         coordinate_pdc_ee = risultati_pdc_ee['node_2'].str.split('_', expand=True)
         coordinate_pdc_ee.columns = ['lat_pdc_ee', 'long_pdc_ee']
-        coordinate_pdc_ee['flow'] = risultati_pdc_ee['flow']
+        coordinate_pdc_ee['flow - MWh'] = risultati_pdc_ee['flow']
         
         geometrie_punti = [Point(float(row['long_pdc_ee']), float(row['lat_pdc_ee'])) for _, row in coordinate_pdc_ee.iterrows()]
         
@@ -597,7 +609,7 @@ if condizione_HT.any():
 
         coordinate_HT = risultati_HT['node_2'].str.split('_', expand=True)
         coordinate_HT.columns = ['lat_HT', 'long_HT']
-        coordinate_HT['flow'] = risultati_HT['flow']
+        coordinate_HT['flow - MWh'] = risultati_HT['flow']
         
         geometrie_punti = [Point(float(row['long_HT']), float(row['lat_HT'])) for _, row in coordinate_HT.iterrows()]
         
@@ -624,7 +636,7 @@ if condizione_LT.any():
        
         coordinate_LT = risultati_LT['node_2'].str.split('_', expand=True)
         coordinate_LT.columns = ['lat_LT', 'long_LT']
-        coordinate_LT['flow'] = risultati_LT['flow']
+        coordinate_LT['flow - MWh'] = risultati_LT['flow']
         
         geometrie_punti = [Point(float(row['long_LT']), float(row['lat_LT'])) for _, row in coordinate_LT.iterrows()]
         
@@ -653,7 +665,7 @@ if condizione_WWTP.any():
         
         coordinate_WWTP = risultati_WWTP['node_2'].str.split('_', expand=True)
         coordinate_WWTP.columns = ['lat_WWTP', 'long_WWTP']
-        coordinate_WWTP['flow'] = risultati_WWTP['flow']
+        coordinate_WWTP['flow - MWh'] = risultati_WWTP['flow']
         
         geometrie_punti = [Point(float(row['long_WWTP']), float(row['lat_WWTP'])) for _, row in coordinate_WWTP.iterrows()]
         
@@ -682,7 +694,7 @@ if condizione_geo_shallow.any():
        
         coordinate_geo_shallow = risultati_geo_shallow['node_2'].str.split('_', expand=True)
         coordinate_geo_shallow.columns = ['lat_geo_shallow', 'long_geo_shallow']
-        coordinate_geo_shallow['flow'] = risultati_geo_shallow['flow']
+        coordinate_geo_shallow['flow - MWh'] = risultati_geo_shallow['flow']
         
         geometrie_punti = [Point(float(row['long_geo_shallow']), float(row['lat_geo_shallow'])) for _, row in coordinate_geo_shallow.iterrows()]
         
@@ -712,7 +724,7 @@ if condizione_geo_1000_2000.any():
 
         coordinate_geo_1000_2000 = risultati_geo_1000_2000['node_2'].str.split('_', expand=True)
         coordinate_geo_1000_2000.columns = ['lat_geo_1000_2000', 'long_geo_1000_2000']
-        coordinate_geo_1000_2000['flow'] = risultati_geo_1000_2000['flow']
+        coordinate_geo_1000_2000['flow - MWh'] = risultati_geo_1000_2000['flow']
         
         geometrie_punti = [Point(float(row['long_geo_1000_2000']), float(row['lat_geo_1000_2000'])) for _, row in coordinate_geo_1000_2000.iterrows()]
         
@@ -769,10 +781,10 @@ for coordinate_file, label, color, icon in coordinate_gdf_list:
 
     for idx, row in coordinate_gdf.iterrows():
        
-        if 'flow' in row.index and (pd.isnull(row['flow']) or row['flow'] == 0):
+        if 'flow' in row.index and (pd.isnull(row['flow - MWh']) or row['flow - MWh'] == 0):
             continue
         try:
-            flow_value = f"{float(row['flow']):.2f}" if 'flow' in row.index else "N/A"
+            flow_value = f"{float(row['flow - MWh']):.2f}" if 'flow - MWh' in row.index else "N/A"
         except ValueError:
             flow_value = "N/A"
         popup_text = f"{label}<br>Flow: {flow_value} MWh"
