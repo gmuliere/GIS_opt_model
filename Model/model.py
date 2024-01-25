@@ -40,7 +40,7 @@ input_path = os.path.abspath("input")
 output_path = os.path.abspath("output")
 
 ################################################## GEO DATAFRAME WITH HEAT DEMANDS #############################################
-input_filename = "data_02.xlsx"
+input_filename = "data.xlsx"
 input_filepath = os.path.join(input_path, input_filename)
 df_1 = pd.read_excel(input_filepath, sheet_name = 'dmd') #, encoding='latin1')
 geometry = gpd.points_from_xy(df_1["longitude"], df_1["latitude"])
@@ -262,7 +262,7 @@ segments_gdf['length_meters'] = segments_gdf['geometry'].length
 
 import oemof.solph as solph
 from oemof.tools import logger
-input_filename = "data_02.xlsx"
+input_filename = "data.xlsx"
 input_filepath = os.path.join(input_path, input_filename)
 tec_data = pd.read_excel(input_filepath, sheet_name = 'TEC')
 commodities_data = pd.read_excel(input_filepath, sheet_name = 'COMMODITIES')
