@@ -71,9 +71,10 @@ geo_df_geo_sources = gpd.GeoDataFrame(geo_sources, geometry=geometry_geo_sources
 df_wwpp = pd.read_excel(input_filepath, sheet_name='WWTP')
 df_ht = pd.read_excel(input_filepath, sheet_name='HT')
 df_lt = pd.read_excel(input_filepath, sheet_name='LT')
+df_inc = pd.read_excel(input_filepath, sheet_name='INC')
 
 # Concatenate the three DataFrames
-df_2 = pd.concat([df_wwpp, df_ht, df_lt], ignore_index=True)
+df_2 = pd.concat([df_wwpp, df_ht, df_lt, df_inc], ignore_index=True)
 geometry_2 = gpd.points_from_xy(df_2["long"], df_2["lat"])
 geo_df_fonti = gpd.GeoDataFrame(df_2, geometry=geometry_2)
 geo_df_fonti.crs = 'EPSG:4326'
@@ -256,7 +257,8 @@ segments_gdf['length_meters'] = segments_gdf['geometry'].length
 # output_filepath = os.path.join(output_path, output_filename)
 # segments_gdf.to_file(output_filepath, encoding= 'utf-8')
 
-
+print("Premi Invio per continuare con l'ottimizzazione.")
+input()
 ########################  OPTIMIZATION MODEL ##########################
 
 
@@ -356,22 +358,39 @@ for i, s in geo_df_fonti_buffer.iterrows():
               o_nodes[s['id_source']] : solph.Flow(
               nominal_value = s['Energia [MWh]'],
               variable_costs = s['Costo [EUR/MWh]'])})
+         
+   if s['Tipo'] == 'inceneritore':
+         label= s['id_source'] + '_' + 'INC'
+         o_nodes[label] = solph.components.Source(label = label, 
+         outputs={
+              o_nodes[s['id_source']] : solph.Flow(
+              nominal_value = s['Energia [MWh]'],
+              variable_costs = s['Costo [EUR/MWh]'])})
                          
    if s['Tipo'] == 'LT':
         label= s['id_source'] + '_' + 'LT'
-        o_nodes[label] = solph.components.Source(label = label, 
+        o_nodes[label] = solph.components.Converter(label = label, 
+                                                    
+        inputs={o_nodes['bus_elc'] : solph.Flow()},                                            
         outputs={
              o_nodes[s['id_source']] : solph.Flow(
              nominal_value = s['Energia [MWh]'],
-             variable_costs = s['Costo [EUR/MWh]'])}) 
+             variable_costs = s['Costo [EUR/MWh]'])},
+        conversion_factors={
+            o_nodes['bus_elc'] : s['COP']})
+       
 
    if s['Tipo'] == 'WWTP':
           label= s['id_source'] + '_' + 'WWTP'
-          o_nodes[label] = solph.components.Source(label = label, 
+          o_nodes[label] = solph.components.Converter(label = label, 
+          inputs={o_nodes['bus_elc'] : solph.Flow()},                                                  
           outputs={
                o_nodes[s['id_source']] : solph.Flow(
                nominal_value = s['Energia [MWh]'],
-               variable_costs = s['Costo [EUR/MWh]'])}) 
+               variable_costs = s['Costo [EUR/MWh]'])},
+          conversion_factors={
+              o_nodes['bus_elc'] : s['COP']})
+          
                    
 ####################### geo sources ##################################################
 
@@ -379,23 +398,25 @@ for i, s in geo_df_geo_sources_buffer.iterrows():
     
     if s['likely_geo'] > 0:
         label= s['id_geo_source'] + '_' +  'geo_shallow'
-        o_nodes[label] = solph.components.Source(label = label, 
+        o_nodes[label] = solph.components.Converter(label = label, 
+        inputs={o_nodes['bus_elc'] : solph.Flow()},                                                     
         outputs={
              o_nodes[s['id_geo_source']] : solph.Flow(
                    
              nominal_value = s['l_geo_MWh'],
-             variable_costs = s['costo_E_MWh']
-                 
-                         )})         
+             variable_costs = s['costo_E_MWh'])}  ,
+        conversion_factors={
+            o_nodes['bus_elc'] : s['COP']})
+                              
 
     elif s['geo_1000_2000'] > 0:
         label= s['id_geo_source'] + '_' +  'geo_1000_2000'
-        o_nodes[label] = solph.components.Source(label = label, 
+        o_nodes[label] = solph.components.Source(label = label,                                 
         outputs={
              o_nodes[s['id_geo_source']] : solph.Flow(
-                   
              nominal_value = s['geo_1000_2000_MWh'],
              variable_costs = s['costo_E_MWh'])})
+        
                  
                                  
 ##################################### CHP #####################################
@@ -740,6 +761,37 @@ if condizione_geo_1000_2000.any():
         print('geo deep heat source is not used to satisfy the heat demand')
 else:
     print('geo deep heat source is not used to satisfy the heat demand')
+    
+    
+##############################  INC ##########################
+
+condizione_INC = risultati['node_1'].str.endswith("_INC") & (risultati['flow'] > 0)
+
+if condizione_INC.any():
+    
+    risultati_INC = risultati[condizione_INC]
+    
+    if not risultati_INC.empty:
+        
+        coordinate_INC = risultati_INC['node_2'].str.split('_', expand=True)
+        coordinate_INC.columns = ['lat_INC', 'long_INC']
+        coordinate_INC['flow - MWh'] = risultati_INC['flow']
+        
+        geometrie_punti = [Point(float(row['long_INC']), float(row['lat_INC'])) for _, row in coordinate_INC.iterrows()]
+        
+        gdf_coordinate_INC = gpd.GeoDataFrame(coordinate_INC, 
+                                               geometry=geometrie_punti, 
+                                               crs='EPSG:4326')
+        
+        output_path = os.path.abspath("output/INC")
+        output_filename = "INC.shp"
+        output_filepath = os.path.join(output_path, output_filename)
+        gdf_coordinate_INC.to_file(output_filepath, driver='ESRI Shapefile')
+    else:
+        print('INC waste heat is not used to satisfy the heat demand')
+else:
+    print('INC waste heat is not used to satisfy the heat demand')    
+    
 
 ##################################################### INTERACTIVE MAP ######################################################
 input_filename = "district_heating_path.shp"
@@ -751,6 +803,7 @@ coordinate_gdf_list = [
     ('output/boiler/boiler.shp', 'Boiler', 'red', 'fire'),
     ('output/heat_pumps/heat_pumps.shp', 'PDC_EE', 'green', 'leaf'),
     ('output/HT/HT.shp', 'HT', 'purple', 'cloud'),
+    ('output/INC/INC.shp', 'INC', 'black', 'cloud'),
     ('output/LT/LT.shp', 'LT', 'orange', 'tint'),
     ('output/WWTP/WWTP.shp', 'WWTP', 'gray', 'tint'),
     ('output/geo_shallow/geo_shallow.shp', 'Geo Shallow', 'yellow', 'tint'),
@@ -809,6 +862,8 @@ with pd.ExcelWriter(output_filepath) as w:
         gdf_coordinate_pdc_ee.to_excel(w, sheet_name='heat_pumps')
     if 'gdf_coordinate_HT' in globals():
         gdf_coordinate_HT.to_excel(w, sheet_name='HT')
+    if 'gdf_coordinate_INC' in globals():
+        gdf_coordinate_INC.to_excel(w, sheet_name='INC')
     if 'gdf_coordinate_LT' in globals():
         gdf_coordinate_LT.to_excel(w, sheet_name='LT')
     if 'gdf_coordinate_WWTP' in globals():
